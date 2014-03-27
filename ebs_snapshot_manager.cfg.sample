@@ -1,0 +1,9 @@
+[credentials]
+accessKey=AWS_ACCESS_KEY
+secretKey=AWS_SECRET_KEY
+regions=us-west-1
+
+[snapshot]
+volumes=ALL
+instances=ALL
+totalToKeep=3
