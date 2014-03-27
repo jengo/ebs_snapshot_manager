@@ -18,10 +18,23 @@
 import boto
 import boto.ec2
 
-import ConfigParser, os, sys
+import ConfigParser, argparse
+import os, sys
+
+
+parser = argparse.ArgumentParser(description='EBS Snapshot Manager')
+parser.add_argument('-c', '--config', help='Config file', required=False, default="/etc/ebs_snapshot_manager.cfg")
+parser.add_argument('-d', '--dryrun', help='Dry run', required=False, default=False, action='store_true')
+args   = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
-config.readfp(open('/etc/ebs_snapshot_manager.cfg'))
+
+try:
+	config.readfp(open(args.config))
+except:
+	print "Could not open config file %s" % args.config
+	sys.exit()
+
 
 try:
 	totalToKeep = config.getint('snapshot', 'totalToKeep')
@@ -50,12 +63,15 @@ for region in config.get('credentials', 'regions').split(','):
 		snapshots = conn.get_all_snapshots(owner='self', filters={'volume_id': volume})
 
 		# Create snapshot first
-		conn.create_snapshot(volume)
+		if args.dryrun == False:
+			conn.create_snapshot(volume)
 		print "Creating snapshot for volume %s" % volume
 
 		# Now find snapshots to remove
 		for snapshot in sorted(snapshots, key=lambda x: x.start_time, reverse=True)[totalToKeep:]:
-			conn.delete_snapshot(snapshot.id)
+			if args.dryrun == False:
+				conn.delete_snapshot(snapshot.id)
+
 			print "Deleting snapshot %s for volume %s which was created on %s" % (snapshot.id, snapshot.volume_id, snapshot.start_time)
 
 
