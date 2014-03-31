@@ -68,7 +68,7 @@ for region in config.get('credentials', 'regions').split(','):
 		print "Creating snapshot for volume %s" % volume
 
 		# Now find snapshots to remove
-		for snapshot in sorted(snapshots, key=lambda x: x.start_time, reverse=True)[totalToKeep:]:
+		for snapshot in sorted(snapshots, key=lambda x: x.start_time, reverse=True)[totalToKeep - 1:]:
 			if args.dryrun == False:
 				conn.delete_snapshot(snapshot.id)
 
