@@ -15,6 +15,8 @@
 
 # Written by Joseph Engo <dev.toaster@gmail.com>
 
+__version__ = '1.0'
+
 import boto
 import boto.ec2
 
@@ -22,9 +24,10 @@ import ConfigParser, argparse
 import os, sys
 
 
-parser = argparse.ArgumentParser(description='EBS Snapshot Manager')
+parser = argparse.ArgumentParser(description='EBS Snapshot Manager %s' % __version__)
 parser.add_argument('-c', '--config', help='Config file', required=False, default="/etc/ebs_snapshot_manager.cfg")
 parser.add_argument('-d', '--dryrun', help='Dry run', required=False, default=False, action='store_true')
+parser.add_argument('--version', action='version', version='EBS Snapshot Manager %s' % __version__)
 args   = parser.parse_args()
 
 config = ConfigParser.ConfigParser()

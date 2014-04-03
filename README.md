@@ -1,5 +1,3 @@
-# Warning, this script is in development and is not currently recommended for use!
-
 ### EBS Snapshot Manager
 
 Simple Python script that can create and rotate EBS snapshots.
