@@ -15,7 +15,7 @@
 
 # Written by Joseph Engo <dev.toaster@gmail.com>
 
-__version__ = '1.0'
+__version__ = '1.1'
 
 import boto
 import boto.ec2
@@ -28,6 +28,7 @@ parser = argparse.ArgumentParser(description='EBS Snapshot Manager %s' % __versi
 parser.add_argument('-c', '--config', help='Config file', required=False, default="/etc/ebs_snapshot_manager.cfg")
 parser.add_argument('-d', '--dryrun', help='Dry run', required=False, default=False, action='store_true')
 parser.add_argument('-a', '--attachedOnly', help='Create snapshots of only volumes attached to an instance', required=False, default=False, action='store_true')
+parser.add_argument('-T', '--skipTagging', help='Do not add tags to snapshots (includes information like instance id and mount device)', required=False, default=False, action='store_true')
 parser.add_argument('--version', action='version', version='EBS Snapshot Manager %s' % __version__)
 args   = parser.parse_args()
 
@@ -53,6 +54,14 @@ if not args.attachedOnly:
 	try:
 		if config.getboolean('snapshot', 'attachedOnly'):
 			args.attachedOnly = True
+
+	except:
+		pass
+
+if not args.skipTagging:
+	try:
+		if config.getboolean('snapshot', 'skipTagging'):
+			args.skipTagging = True
 
 	except:
 		pass
@@ -84,10 +93,25 @@ for region in config.get('credentials', 'regions').split(','):
 
 		snapshots = conn.get_all_snapshots(owner='self', filters={'volume_id': volume.id})
 
+
 		# Create snapshot first
 		if args.dryrun == False:
-			conn.create_snapshot(volume.id)
-		print "Creating snapshot for volume %s" % volume.id
+			snapshot = conn.create_snapshot(volume.id)
+			print "Creating snapshot for volume %s snapshot %s" % (volume.id, snapshot.id)
+
+			# Tag the snapshot
+			if not args.skipTagging and volume.attachment_state() == "attached":
+				tags = {
+					"instance-id": volume.attach_data.instance_id,
+					"device": volume.attach_data.device
+				}
+
+				conn.create_tags(snapshot.id, tags)
+
+		else:
+			print "Creating snapshot for volume %s" % volume.id
+
+
 
 		# Now find snapshots to remove
 		for snapshot in sorted(snapshots, key=lambda x: x.start_time, reverse=True)[totalToKeep - 1:]:

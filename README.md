@@ -20,6 +20,7 @@ volumes=ALL
 instances=ALL
 totalToKeep=3
 attachedOnly=true
+skipTagging=false
 ```
 
 The config file should NOT be world as it contains credentials.  It is recommended that you create a separate user to run this script, not root or the same user as your webserver.
