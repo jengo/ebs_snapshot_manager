@@ -7,3 +7,4 @@ regions=us-west-1
 volumes=ALL
 instances=ALL
 totalToKeep=3
+attachedOnly=true

@@ -27,10 +27,12 @@ import os, sys
 parser = argparse.ArgumentParser(description='EBS Snapshot Manager %s' % __version__)
 parser.add_argument('-c', '--config', help='Config file', required=False, default="/etc/ebs_snapshot_manager.cfg")
 parser.add_argument('-d', '--dryrun', help='Dry run', required=False, default=False, action='store_true')
+parser.add_argument('-a', '--attachedOnly', help='Create snapshots of only volumes attached to an instance', required=False, default=False, action='store_true')
 parser.add_argument('--version', action='version', version='EBS Snapshot Manager %s' % __version__)
 args   = parser.parse_args()
 
 config = ConfigParser.ConfigParser()
+
 
 try:
 	config.readfp(open(args.config))
@@ -46,6 +48,16 @@ except:
 	sys.exit()
 
 
+# Arguments have priority over config
+if not args.attachedOnly:
+	try:
+		if config.getboolean('snapshot', 'attachedOnly'):
+			args.attachedOnly = True
+
+	except:
+		pass
+
+
 for region in config.get('credentials', 'regions').split(','):
 	conn = boto.ec2.connect_to_region(region,
 		aws_access_key_id=config.get('credentials', 'accessKey'),
@@ -57,18 +69,25 @@ for region in config.get('credentials', 'regions').split(','):
 	# Get list of volumes or the list of volumes in the config
 	if config.get('snapshot', 'volumes') == "ALL":
 		for volume in conn.get_all_volumes():
-			volumes.append(volume.id)
+			volumes.append(volume)
 	else:
-		volumes = config.get('snapshot', 'volumes').split(',')
+		volume_ids = config.get('snapshot', 'volumes').split(',')
+
+		for volume in conn.get_all_volumes(volume_ids):
+			volumes.append(volume)
 
 
 	for volume in volumes:
-		snapshots = conn.get_all_snapshots(owner='self', filters={'volume_id': volume})
+		if args.attachedOnly and volume.attachment_state() != "attached":
+			print "Volume %s isn't attached, skipping" % volume.id
+			continue
+
+		snapshots = conn.get_all_snapshots(owner='self', filters={'volume_id': volume.id})
 
 		# Create snapshot first
 		if args.dryrun == False:
-			conn.create_snapshot(volume)
-		print "Creating snapshot for volume %s" % volume
+			conn.create_snapshot(volume.id)
+		print "Creating snapshot for volume %s" % volume.id
 
 		# Now find snapshots to remove
 		for snapshot in sorted(snapshots, key=lambda x: x.start_time, reverse=True)[totalToKeep - 1:]:
