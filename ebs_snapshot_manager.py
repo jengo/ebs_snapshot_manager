@@ -74,18 +74,28 @@ for region in config.get('credentials', 'regions').split(','):
 
 
 	volumes = []
+	filters = {}
+
+	# Note:  This does support mixing and matching instances and volume filters
+	# However, there is currently no error reporting when you specify an impossible condition
+	# For example:  Filtering a volume and instance that aren't attached together
+	if config.get('snapshot', 'instances') != "ALL":
+		filters = {
+			"attachment.instance-id": config.get('snapshot', 'instances').split(',')
+		}
+
 
 	# Get list of volumes or the list of volumes in the config
 	if config.get('snapshot', 'volumes') == "ALL":
-		for volume in conn.get_all_volumes():
+		for volume in conn.get_all_volumes(filters=filters):
 			volumes.append(volume)
 	else:
 		volume_ids = config.get('snapshot', 'volumes').split(',')
 
-		for volume in conn.get_all_volumes(volume_ids):
+		for volume in conn.get_all_volumes(volume_ids, filters=filters):
 			volumes.append(volume)
 
-
+	# Build the snapshots for each volume
 	for volume in volumes:
 		if args.attachedOnly and volume.attachment_state() != "attached":
 			print "Volume %s isn't attached, skipping" % volume.id
@@ -97,7 +107,8 @@ for region in config.get('credentials', 'regions').split(','):
 		# Create snapshot first
 		if args.dryrun == False:
 			snapshot = conn.create_snapshot(volume.id)
-			print "Creating snapshot for volume %s snapshot %s" % (volume.id, snapshot.id)
+			print "Creating snapshot for volume %s snapshot %s on instance %s with device %s" % (volume.id, snapshot.id,
+				volume.attach_data.instance_id, volume.attach_data.device)
 
 			# Tag the snapshot
 			if not args.skipTagging and volume.attachment_state() == "attached":
@@ -109,7 +120,8 @@ for region in config.get('credentials', 'regions').split(','):
 				conn.create_tags(snapshot.id, tags)
 
 		else:
-			print "Creating snapshot for volume %s" % volume.id
+			print "Creating snapshot for volume %s on instance %s with device %s" % (volume.id, volume.attach_data.instance_id,
+				volume.attach_data.device)
 
 
 
@@ -118,7 +130,8 @@ for region in config.get('credentials', 'regions').split(','):
 			if args.dryrun == False:
 				conn.delete_snapshot(snapshot.id)
 
-			print "Deleting snapshot %s for volume %s which was created on %s" % (snapshot.id, snapshot.volume_id, snapshot.start_time)
+			print "Deleting snapshot %s for volume %s which was created on %s" % (snapshot.id, snapshot.volume_id,
+				snapshot.start_time)
 
 
 
