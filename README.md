@@ -19,7 +19,11 @@ regions=us-west-1
 volumes=ALL
 instances=ALL
 totalToKeep=3
+attachedOnly=true
+skipTagging=false
 ```
+
+You can set it to run only on specific instances or volumes.  These values can be mixed and matched. However, there is currently no error reporting when you specify an impossible condition.  For example:  Filtering a volume and instance that aren't attached together.
 
 The config file should NOT be world as it contains credentials.  It is recommended that you create a separate user to run this script, not root or the same user as your webserver.
 
