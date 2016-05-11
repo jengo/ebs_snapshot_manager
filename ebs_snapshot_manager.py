@@ -13,16 +13,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Written by Joseph Engo <dev.toaster@gmail.com>
+# Written by Jo Engo <dev.toaster@gmail.com>
 
-__version__ = '1.1'
+__version__ = '1.2'
 
 import boto
 import boto.ec2
 
-import ConfigParser, argparse
+import argparse
 import os, sys
 
+try:
+	# Python 3
+	import configparser
+except ImportError:
+	# Python 2
+	import ConfigParser as configparser
 
 parser = argparse.ArgumentParser(description='EBS Snapshot Manager %s' % __version__)
 parser.add_argument('-c', '--config', help='Config file', required=False, default="/etc/ebs_snapshot_manager.cfg")
@@ -32,20 +38,20 @@ parser.add_argument('-T', '--skipTagging', help='Do not add tags to snapshots (i
 parser.add_argument('--version', action='version', version='EBS Snapshot Manager %s' % __version__)
 args   = parser.parse_args()
 
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 
 
 try:
 	config.readfp(open(args.config))
 except:
-	print "Could not open config file %s" % args.config
+	print("Could not open config file {0}".format(args.config))
 	sys.exit()
 
 
 try:
 	totalToKeep = config.getint('snapshot', 'totalToKeep')
 except:
-	print "Invalid totalToKeep setting"
+	print("Invalid totalToKeep setting")
 	sys.exit()
 
 
@@ -98,7 +104,7 @@ for region in config.get('credentials', 'regions').split(','):
 	# Build the snapshots for each volume
 	for volume in volumes:
 		if args.attachedOnly and volume.attachment_state() != "attached":
-			print "Volume %s isn't attached, skipping" % volume.id
+			print("Volume {0} isn't attached, skipping".format(volume.id))
 			continue
 
 		snapshots = conn.get_all_snapshots(owner='self', filters={'volume_id': volume.id})
@@ -107,8 +113,8 @@ for region in config.get('credentials', 'regions').split(','):
 		# Create snapshot first
 		if args.dryrun == False:
 			snapshot = conn.create_snapshot(volume.id)
-			print "Creating snapshot for volume %s snapshot %s on instance %s with device %s" % (volume.id, snapshot.id,
-				volume.attach_data.instance_id, volume.attach_data.device)
+			print("Creating snapshot for volume {0} snapshot {1} on instance {2} with device {3}".format(volume.id, snapshot.id,
+				volume.attach_data.instance_id, volume.attach_data.device))
 
 			# Tag the snapshot
 			if not args.skipTagging and volume.attachment_state() == "attached":
@@ -120,8 +126,8 @@ for region in config.get('credentials', 'regions').split(','):
 				conn.create_tags(snapshot.id, tags)
 
 		else:
-			print "Creating snapshot for volume %s on instance %s with device %s" % (volume.id, volume.attach_data.instance_id,
-				volume.attach_data.device)
+			print("Creating snapshot for volume {0} on instance {1} with device {2}".format(volume.id, volume.attach_data.instance_id,
+				volume.attach_data.device))
 
 
 
@@ -130,8 +136,8 @@ for region in config.get('credentials', 'regions').split(','):
 			if args.dryrun == False:
 				conn.delete_snapshot(snapshot.id)
 
-			print "Deleting snapshot %s for volume %s which was created on %s" % (snapshot.id, snapshot.volume_id,
-				snapshot.start_time)
+			print("Deleting snapshot {0} for volume {1} which was created on {2}".format(snapshot.id, snapshot.volume_id,
+				snapshot.start_time))
 
 
 
