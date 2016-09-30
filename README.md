@@ -27,7 +27,16 @@ You can set it to run only on specific instances or volumes.  These values can b
 
 The config file should NOT be world as it contains credentials.  It is recommended that you create a separate user to run this script, not root or the same user as your webserver.
 
-AWS permissions required: ec2:CreateSnapshot, ec2:DeleteSnapshot, ec2:DescribeInstances, ec2:DescribeSnapshots, ec2:DescribeVolumes, ec2:CreateTags
+`totalTokeep` is the total number of snapshots to keep *per-volume*.
+
+AWS permissions required: 
+
+  * ec2:CreateSnapshot
+  * ec2:DeleteSnapshot
+  * ec2:DescribeInstances
+  * ec2:DescribeSnapshots
+  * ec2:DescribeVolumes
+  * ec2:CreateTags
 
 Add a cron entry for how often you would like the snapshots to be generated.  EBS snapshots can get expensive so keep that in mind on how often you choose to run it.
 
